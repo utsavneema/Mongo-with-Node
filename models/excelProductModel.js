@@ -47,5 +47,5 @@ const productSchema = new Schema({
         required: true
     }
 })
-const productModel = mongoose.model("test_products", productSchema); //user is table name
+const productModel = mongoose.model("test_products", productSchema); 
 module.exports = productModel;

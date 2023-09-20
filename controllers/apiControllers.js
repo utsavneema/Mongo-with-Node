@@ -1,10 +1,9 @@
 const mongoose = require("mongoose");
-const ObjectId = mongoose.Types.ObjectId;
+// const ObjectId = mongoose.Types.ObjectId;
 
-
+const products = require("../models/productsModel")
 const categories = require("../models/categoriesModel"); //collection name
 const items = require("../models/itemsModel")
-const sales = require("../models/salesModel")
 
 //----------------------------------------for maximum execution timeout--------------------------------------------------------------
 // async function testing(req, res) {
@@ -42,7 +41,7 @@ async function postDetails(req, res) {
 //----------------------------------------------------------------------------------------------------------------------
 async function insertItems(req, res) {
     try {
-        const { purchased_freq, category } = req.body;
+        const { purchased_freq, name } = req.body;
         const result = await items.create({
             purchased_freq: req.body.purchased_freq,
             name: req.body.name
@@ -65,14 +64,12 @@ async function getItems(req, res) {
 //---------------------------------------------Using filter--------------------------------------------------------------------
 async function updateItems(req, res) {
     try {
-        const { purchased_freq, name, newName } = req.body;
+        const { purchased_freq, newName } = req.body;
         const result = await items.updateOne(
             { purchased_freq: purchased_freq },
             { $set: { name: newName } }
-        );
-        if (result.nModified === 0) {
-            return res.status(404).json({ message: "No matching records found" });
-        }
+        );  /* "purchased_freq":"48", "newName":"heloooooo"} In postman */ 
+
         res.status(200).json({ message: "Data successfully updated ++++++++++++++++++" });
         console.log(result, "New Dataaaaaa");
     } catch (error) {
@@ -85,21 +82,11 @@ async function updateItemsbyID(req, res) {
     try {
         const id = req.params.id;
 
-        if (!ObjectId.isValid(id)) {
-            return res.status(404).json({ message: "Invalid ID provided" });
-        }
-
         const { purchased_freq, name } = req.body;
 
         const result = await items.findByIdAndUpdate(id, {
             name: name, purchased_freq: purchased_freq
-        },
-            { new: true });
-
-        if (!result) {
-            return res.status(404).json({ message: "No matching records found" });
-        }
-
+        });
         console.log("Updated Data:", result);
         res.status(200).json({ message: "Data successfully updated" });
     } catch (error) {
@@ -108,15 +95,39 @@ async function updateItemsbyID(req, res) {
     }
 }
 //--------------------------------------------------------------------------------------------
-async function salesAggregation(req, res) {
+async function lookupAggregate(req, res) {
     try {
-        const { quantity } = req.body;
-        const result = await sales.aggregate([
-            { $match: { quantity: quantity } },
-            { $group: { _id: '$quantity', totalPrice: { $sum: '$price' }, avgPrice: { $avg: '$price' } } }
+        const result = await products.aggregate([ //returns all document with category name from categories collection 
+            {
+                $lookup: {
+                    from: "categories", // collection name jisme lookup lgana hai
+                    localField: "category", //Field in the current collection (products)
+                    foreignField: "_id",// Field in the other collection jis se join krna hai (categories)
+                    as: "CategoryName" //jisme result aega
+                }
+            },
+            {
+                $unwind: "$CategoryName"
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    company: 1,
+                    price: 1,
+                    colors: 1,
+                    image: 1,
+                    // category: 1,
+                    isFeatured: 1,
+                    // __v: 1,
+                    CategoryName: {
+                        name: "$CategoryName.name" 
+                    }
+                }
+            }
         ]);
-        res.status(200).json({ message: "Data successfully fetched", result });
-        console.log(result, "-------------------");
+        res.status(200).json({ message: "lookup worked", result });
+        // console.log(result, "-------------------");
     } catch (error) {
         console.error("Error", error);
         res.status(500).json({ message: "Error --------------------------------" });
@@ -124,4 +135,4 @@ async function salesAggregation(req, res) {
 }
 
 //-------------------------------------------------------------------------------------------
-module.exports = { getDetails, postDetails, getItems, updateItems, insertItems, updateItemsbyID, salesAggregation };
+module.exports = { getDetails, postDetails, getItems, updateItems, insertItems, updateItemsbyID, lookupAggregate };

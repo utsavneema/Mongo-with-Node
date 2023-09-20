@@ -2,14 +2,13 @@ const XLSX = require('xlsx')
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const test_products = require("../models/productModel")
+const test_products = require("../models/excelProductModel")
 
 
 async function fileUpload(req, res) {
     try {
         const file1 = req.files.userfile
         const fileName = file1.name
-        // const fileName = parseInt(Math.random() * 100000);
         const path = fileName;
         file1.mv("./excelsheets/" + fileName);
 
